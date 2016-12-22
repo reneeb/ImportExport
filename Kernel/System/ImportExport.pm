@@ -59,6 +59,7 @@ return a list of templates as array reference
     my $TemplateList = $ImportExportObject->TemplateList(
         Object => 'Ticket',  # (optional)
         Format => 'CSV'      # (optional)
+        Result => 'HASH'     # (optional - ARRAY|HASH - default: ARRAY)
         UserID => 1,
     );
 
@@ -77,7 +78,7 @@ sub TemplateList {
     }
 
     # create sql string
-    my $SQL = 'SELECT id FROM imexport_template WHERE 1=1 ';
+    my $SQL = 'SELECT id, name FROM imexport_template WHERE 1=1 ';
     my @BIND;
 
     if ( $Param{Object} ) {
@@ -89,9 +90,6 @@ sub TemplateList {
         push @BIND, \$Param{Format};
     }
 
-    # add order option
-    $SQL .= 'ORDER BY id';
-
     # get DB object
     my $DBObject = $Kernel::OM->Get('Kernel::System::DB');
 
@@ -102,12 +100,17 @@ sub TemplateList {
     );
 
     # fetch the result
-    my @TemplateList;
+    my %TemplateList;
     while ( my @Row = $DBObject->FetchrowArray() ) {
-        push @TemplateList, $Row[0];
+        $TemplateList{ $Row[0] } = $Row[1];
     }
 
-    return \@TemplateList;
+    $Param{Result} //= 'ARRAY';
+    if ( $Param{Result} eq 'HASH' ) {
+        return %TemplateList;
+    }
+
+    return [ sort keys %TemplateList ];
 }
 
 =item TemplateGet()
